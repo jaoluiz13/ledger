@@ -10,8 +10,7 @@ export const sql = postgres(DATABASE_URL, {
   idle_timeout: DB_IDLE_TIMEOUT,
   connect_timeout: DB_CONNECT_TIMEOUT,
   transform: postgres.camel,
-  // PgBouncer transaction mode does not support prepared statements
-  prepare: false,
+  prepare: true,
   types: {
     // Parse PostgreSQL BIGINT (OID 20) as JS number instead of bigint
     bigint: {

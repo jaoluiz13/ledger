@@ -9,7 +9,11 @@ import { reconcileAllSchema } from './schemas/accounts.schemas.js';
 
 const PORT = parseInt(process.env.PORT ?? '3000', 10);
 
-const app = Fastify({ logger: process.env.NODE_ENV !== 'test' });
+const app = Fastify({
+  logger: process.env.NODE_ENV !== 'test' ? { level: 'warn' } : false,
+  keepAliveTimeout: 65000,
+  requestTimeout: 30000,
+});
 
 await app.register(cors);
 

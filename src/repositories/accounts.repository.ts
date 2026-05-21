@@ -39,6 +39,22 @@ export async function incrementBalance(accountId: string, delta: number, tx: Tx)
   `;
 }
 
+export async function incrementBalanceBatch(
+  fromAccountId: string,
+  toAccountId: string,
+  amount: number,
+  tx: Tx,
+): Promise<void> {
+  await tx`
+    UPDATE accounts
+    SET balance = balance + CASE
+      WHEN account_id = ${fromAccountId} THEN ${-amount}::bigint
+      WHEN account_id = ${toAccountId}   THEN ${amount}::bigint
+    END
+    WHERE account_id = ANY(ARRAY[${fromAccountId}, ${toAccountId}]::uuid[])
+  `;
+}
+
 export async function reconcileOne(accountId: string): Promise<ReconcileResult | null> {
   const [row] = await sql<Array<{
     accountId: string;

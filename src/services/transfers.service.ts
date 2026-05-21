@@ -1,7 +1,6 @@
 import { sql } from '../db.js';
 import * as accountsRepo from '../repositories/accounts.repository.js';
 import * as transfersRepo from '../repositories/transfers.repository.js';
-import * as entriesRepo from '../repositories/ledger-entries.repository.js';
 import type { CreateTransferParams, Transfer } from '../types/ledger.types.js';
 import { LedgerError } from '../errors.js';
 
@@ -13,38 +12,39 @@ export async function createTransfer(params: CreateTransferParams): Promise<Tran
     throw new LedgerError('Source and destination accounts must differ', 'SAME_ACCOUNT');
   }
 
-  return sql.begin(async (tx) => {
-    const existingId = await transfersRepo.findIdByIdempotencyKey(idempotencyKey, tx);
-    if (existingId) {
-      return transfersRepo.findWithEntries(existingId, tx) as Promise<Transfer>;
+  // Check idempotency outside the transaction to avoid holding locks on duplicates
+  const existing = await transfersRepo.findByIdempotencyKey(idempotencyKey, sql);
+  if (existing) return existing;
+
+  const ordered: [string, string] =
+    fromAccountId < toAccountId
+      ? [fromAccountId, toAccountId]
+      : [toAccountId, fromAccountId];
+
+  try {
+    return await sql.begin(async (tx) => {
+      // Round-trip 1: lock rows in deterministic order, read balances
+      const locked = await accountsRepo.lockManyForUpdate(ordered, tx);
+      const fromRow = locked.find((a) => a.accountId === fromAccountId);
+      const toRow = locked.find((a) => a.accountId === toAccountId);
+
+      if (!fromRow) throw new LedgerError('Source account not found', 'ACCOUNT_NOT_FOUND', 404);
+      if (!toRow) throw new LedgerError('Destination account not found', 'ACCOUNT_NOT_FOUND', 404);
+      if (fromRow.balance < amount) throw new LedgerError('Insufficient balance', 'INSUFFICIENT_BALANCE');
+
+      // Round-trip 2: INSERT transfer + INSERT entries + UPDATE balances in one CTE
+      return transfersRepo.insertWithEntriesAndUpdateBalance(
+        { fromAccountId, toAccountId, amount, description, idempotencyKey },
+        tx,
+      );
+    });
+  } catch (err: any) {
+    // Race condition: two concurrent requests with the same idempotency key both passed
+    // the pre-check. The unique constraint on idempotency_key catches the second one.
+    if (err.code === '23505') {
+      const retry = await transfersRepo.findByIdempotencyKey(idempotencyKey, sql);
+      if (retry) return retry;
     }
-
-    // Lock in deterministic order to prevent deadlocks
-    const ordered: [string, string] =
-      fromAccountId < toAccountId
-        ? [fromAccountId, toAccountId]
-        : [toAccountId, fromAccountId];
-
-    const locked = await accountsRepo.lockManyForUpdate(ordered, tx);
-    const fromRow = locked.find((a) => a.accountId === fromAccountId);
-    const toRow = locked.find((a) => a.accountId === toAccountId);
-
-    if (!fromRow) throw new LedgerError('Source account not found', 'ACCOUNT_NOT_FOUND', 404);
-    if (!toRow) throw new LedgerError('Destination account not found', 'ACCOUNT_NOT_FOUND', 404);
-    if (fromRow.balance < amount) throw new LedgerError('Insufficient balance', 'INSUFFICIENT_BALANCE');
-
-    const { transferId, createdAt } = await transfersRepo.insert(
-      { fromAccountId, toAccountId, amount, description, idempotencyKey },
-      tx,
-    );
-
-    const entries = await entriesRepo.insertDebitAndCredit(
-      fromAccountId, toAccountId, transferId, amount, tx,
-    );
-
-    await accountsRepo.incrementBalance(fromAccountId, -amount, tx);
-    await accountsRepo.incrementBalance(toAccountId, amount, tx);
-
-    return { id: transferId, fromAccountId, toAccountId, amount, description, idempotencyKey, status: 'completed', createdAt, entries };
-  });
+    throw err;
+  }
 }

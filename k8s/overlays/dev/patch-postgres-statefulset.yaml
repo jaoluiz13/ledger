@@ -13,21 +13,27 @@ spec:
             - -c
             - synchronous_commit=off
             - -c
-            - shared_buffers=256MB
+            - shared_buffers=512MB
             - -c
-            - effective_cache_size=512MB
+            - effective_cache_size=1536MB
             - -c
-            - max_wal_size=1GB
+            - max_wal_size=2GB
             - -c
             - checkpoint_completion_target=0.9
             - -c
             - wal_buffers=64MB
             - -c
             - max_connections=300
+            - -c
+            - work_mem=16MB
+            - -c
+            - random_page_cost=1.1
+            - -c
+            - log_min_duration_statement=100
           resources:
             requests:
-              cpu: 500m
-              memory: 512Mi
-            limits:
-              cpu: 2000m
+              cpu: 1000m
               memory: 1Gi
+            limits:
+              cpu: 4000m
+              memory: 2Gi

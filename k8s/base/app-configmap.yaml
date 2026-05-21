@@ -6,5 +6,5 @@ metadata:
 data:
   NODE_ENV: production
   PORT: "3000"
-  DB_POOL_MAX: "20"
+  DB_POOL_MAX: "50"
   DB_CONNECT_TIMEOUT: "20"

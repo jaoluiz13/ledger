@@ -18,7 +18,9 @@
     "docker:logs": "docker-compose logs -f app",
     "test": "node --import tsx/esm --test tests/ledger.test.ts",
     "test:load": "k6 run -e TARGET_RPS=400 -e MAX_VUS=600 -e PRE_ALLOCATED_VUS=120 tests/load/baseline.js",
-    "test:load:k8s": "bash -lc 'set -e; kubectl -n ledger port-forward svc/ledger-api 13000:3000 >/tmp/ledger-k8s-pf.log 2>&1 & PF=$!; trap \"kill $PF >/dev/null 2>&1 || true\" EXIT; sleep 2; BASE_URL=http://localhost:13000 k6 run -e TARGET_RPS=400 -e MAX_VUS=600 -e PRE_ALLOCATED_VUS=120 tests/load/baseline.js'"
+    "test:load:k8s": "bash -lc 'set -e; pkill -x kubectl 2>/dev/null || true; sleep 1; kubectl -n ledger port-forward svc/ledger-api 13000:3000 >/tmp/ledger-k8s-pf.log 2>&1 & PF=$!; trap \"kill $PF >/dev/null 2>&1 || true\" EXIT; echo \"Waiting for port-forward...\"; for i in $(seq 1 20); do curl -sf http://localhost:13000/health >/dev/null 2>&1 && echo \"Ready after ${i}s\" && break; sleep 1; done; BASE_URL=http://localhost:13000 k6 run -e TARGET_RPS=400 -e MAX_VUS=600 -e PRE_ALLOCATED_VUS=120 tests/load/baseline.js'",
+    "test:load:nodeport": "k6 run -e BASE_URL=http://172.27.0.2:30300 -e TARGET_RPS=400 -e MAX_VUS=600 -e PRE_ALLOCATED_VUS=120 tests/load/baseline.js",
+    "test:load:nodeport:1k": "k6 run -e BASE_URL=http://172.27.0.2:30300 -e TARGET_RPS=1000 -e MAX_VUS=1200 -e PRE_ALLOCATED_VUS=300 -e ACCOUNT_COUNT=5000 tests/load/baseline.js"
   },
   "dependencies": {
     "@fastify/cors": "^11.2.0",

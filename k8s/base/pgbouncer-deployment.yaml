@@ -43,11 +43,11 @@ spec:
             - name: AUTH_TYPE
               value: plain
             - name: POOL_MODE
-              value: transaction
+              value: session
             - name: MAX_CLIENT_CONN
               value: "5000"
             - name: DEFAULT_POOL_SIZE
-              value: "80"
+              value: "200"
             - name: MIN_POOL_SIZE
               value: "20"
             - name: RESERVE_POOL_SIZE
@@ -55,7 +55,7 @@ spec:
             - name: IGNORE_STARTUP_PARAMETERS
               value: extra_float_digits
             - name: SERVER_RESET_QUERY
-              value: ""
+              value: "DISCARD ALL"
           readinessProbe:
             tcpSocket:
               port: 5432

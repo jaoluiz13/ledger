@@ -26,12 +26,12 @@ services:
       DB_HOST: postgres
       DB_PORT: 5432
       DB_NAME: ledger
-      POOL_MODE: transaction
+      POOL_MODE: session
       MAX_CLIENT_CONN: 5000
-      DEFAULT_POOL_SIZE: 80
+      DEFAULT_POOL_SIZE: 200
       MIN_POOL_SIZE: 20
       RESERVE_POOL_SIZE: 20
-      SERVER_RESET_QUERY:
+      SERVER_RESET_QUERY: DISCARD ALL
       AUTH_TYPE: plain
       IGNORE_STARTUP_PARAMETERS: extra_float_digits
     ports:

@@ -11,7 +11,7 @@ function randomString(length) {
 }
 
 const BASE_URL = __ENV.BASE_URL || "http://localhost:3000";
-const ACCOUNT_COUNT = Number(__ENV.ACCOUNT_COUNT || "500");
+const ACCOUNT_COUNT = Number(__ENV.ACCOUNT_COUNT || "5000");
 const TARGET_RPS = Number(__ENV.TARGET_RPS || "250");
 const DURATION = __ENV.DURATION || "60s";
 const PRE_ALLOCATED_VUS = Number(__ENV.PRE_ALLOCATED_VUS || "80");

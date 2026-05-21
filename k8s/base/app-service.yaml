@@ -4,9 +4,11 @@ metadata:
   name: ledger-api
   namespace: ledger
 spec:
+  type: NodePort
   selector:
     app: ledger-api
   ports:
     - name: http
       port: 3000
       targetPort: 3000
+      nodePort: 30300
