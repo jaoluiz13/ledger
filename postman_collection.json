@@ -1,0 +1,317 @@
+{
+  "info": {
+    "name": "Fastify Ledger",
+    "description": "Double-entry bookkeeping ledger API — Phase 1",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "accountIdAlice",
+      "value": "",
+      "type": "string",
+      "description": "Preenchido automaticamente pelo script de Create Account (Alice)"
+    },
+    {
+      "key": "accountIdBob",
+      "value": "",
+      "type": "string",
+      "description": "Preenchido automaticamente pelo script de Create Account (Bob)"
+    },
+    {
+      "key": "transferId",
+      "value": "",
+      "type": "string",
+      "description": "Preenchido automaticamente pelo script de Create Transfer"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "GET /health",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["health"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Accounts",
+      "item": [
+        {
+          "name": "POST /accounts — Alice (com saldo inicial)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const body = pm.response.json();",
+                  "if (body.id) {",
+                  "  pm.collectionVariables.set('accountIdAlice', body.id);",
+                  "  console.log('accountIdAlice =', body.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Alice\",\n  \"initialBalance\": 100000\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/accounts",
+              "host": ["{{baseUrl}}"],
+              "path": ["accounts"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST /accounts — Bob (sem saldo inicial)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const body = pm.response.json();",
+                  "if (body.id) {",
+                  "  pm.collectionVariables.set('accountIdBob', body.id);",
+                  "  console.log('accountIdBob =', body.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Bob\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/accounts",
+              "host": ["{{baseUrl}}"],
+              "path": ["accounts"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET /accounts/:id — Alice",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/accounts/{{accountIdAlice}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["accounts", "{{accountIdAlice}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET /accounts/:id — Bob",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/accounts/{{accountIdBob}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["accounts", "{{accountIdBob}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET /accounts/:id/ledger — Alice",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/accounts/{{accountIdAlice}}/ledger?limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["accounts", "{{accountIdAlice}}", "ledger"],
+              "query": [
+                { "key": "limit", "value": "20" }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET /accounts/:id/reconcile — Alice",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/accounts/{{accountIdAlice}}/reconcile",
+              "host": ["{{baseUrl}}"],
+              "path": ["accounts", "{{accountIdAlice}}", "reconcile"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Transfers",
+      "item": [
+        {
+          "name": "POST /transfers — Alice → Bob",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "// Gera um idempotency key único a cada execução",
+                  "pm.variables.set('idempotencyKey', 'postman-' + Date.now());"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const body = pm.response.json();",
+                  "if (body.id) {",
+                  "  pm.collectionVariables.set('transferId', body.id);",
+                  "  console.log('transferId =', body.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fromAccountId\": \"{{accountIdAlice}}\",\n  \"toAccountId\": \"{{accountIdBob}}\",\n  \"amount\": 5000,\n  \"description\": \"Pagamento de serviços\",\n  \"idempotencyKey\": \"{{idempotencyKey}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/transfers",
+              "host": ["{{baseUrl}}"],
+              "path": ["transfers"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST /transfers — Idempotência (mesma key)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fromAccountId\": \"{{accountIdAlice}}\",\n  \"toAccountId\": \"{{accountIdBob}}\",\n  \"amount\": 5000,\n  \"description\": \"Pagamento de serviços\",\n  \"idempotencyKey\": \"{{idempotencyKey}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/transfers",
+              "host": ["{{baseUrl}}"],
+              "path": ["transfers"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST /transfers — Saldo insuficiente (espera 400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fromAccountId\": \"{{accountIdAlice}}\",\n  \"toAccountId\": \"{{accountIdBob}}\",\n  \"amount\": 99999999,\n  \"idempotencyKey\": \"postman-insufficient-{{$timestamp}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/transfers",
+              "host": ["{{baseUrl}}"],
+              "path": ["transfers"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST /transfers — Conta para si mesmo (espera 400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fromAccountId\": \"{{accountIdAlice}}\",\n  \"toAccountId\": \"{{accountIdAlice}}\",\n  \"amount\": 100,\n  \"idempotencyKey\": \"postman-self-{{$timestamp}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/transfers",
+              "host": ["{{baseUrl}}"],
+              "path": ["transfers"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST /transfers — Body inválido (espera 400 VALIDATION_ERROR)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fromAccountId\": \"not-a-uuid\",\n  \"toAccountId\": \"{{accountIdBob}}\",\n  \"amount\": -50,\n  \"idempotencyKey\": \"\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/transfers",
+              "host": ["{{baseUrl}}"],
+              "path": ["transfers"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Reconciliation",
+      "item": [
+        {
+          "name": "GET /reconcile — todas as contas",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/reconcile",
+              "host": ["{{baseUrl}}"],
+              "path": ["reconcile"]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

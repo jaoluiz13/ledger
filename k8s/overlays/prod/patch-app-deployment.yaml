@@ -1,0 +1,12 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ledger-api
+  namespace: ledger
+spec:
+  replicas: 3
+  template:
+    spec:
+      containers:
+        - name: ledger-api
+          imagePullPolicy: Always
