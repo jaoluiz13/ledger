@@ -17,7 +17,8 @@
     "docker:down": "docker-compose down",
     "docker:logs": "docker-compose logs -f app",
     "test": "node --import tsx/esm --test tests/ledger.test.ts",
-    "test:load": "k6 run -e TARGET_RPS=400 -e MAX_VUS=600 -e PRE_ALLOCATED_VUS=120 tests/load/baseline.js"
+    "test:load": "k6 run -e TARGET_RPS=400 -e MAX_VUS=600 -e PRE_ALLOCATED_VUS=120 tests/load/baseline.js",
+    "test:load:k8s": "bash -lc 'set -e; kubectl -n ledger port-forward svc/ledger-api 13000:3000 >/tmp/ledger-k8s-pf.log 2>&1 & PF=$!; trap \"kill $PF >/dev/null 2>&1 || true\" EXIT; sleep 2; BASE_URL=http://localhost:13000 k6 run -e TARGET_RPS=400 -e MAX_VUS=600 -e PRE_ALLOCATED_VUS=120 tests/load/baseline.js'"
   },
   "dependencies": {
     "@fastify/cors": "^11.2.0",
